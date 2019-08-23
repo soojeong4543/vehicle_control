@@ -134,6 +134,7 @@ if __name__ == "__main__":
 
         #R = normMtx[cRef]
 
+        #ori = nRefOri
         ori = cRefOri
 
         y = (-math.sin(ori[2]) * distMtx[cRef,0] + math.cos(ori[2]) * distMtx[cRef,1])
@@ -144,7 +145,7 @@ if __name__ == "__main__":
         y_des = 0
         psi_des = ori[2]
         psidot_des = (fRefOri[2]-nRefOri[2])/(dt*4*PRD_HRZ)
-        #psidot_des = 0
+        #psidot_des = Vx/15
 
         e[0] = y - y_des
         e[1] = ydot + Vx*(psi - psi_des)

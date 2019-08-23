@@ -4,7 +4,7 @@ import numpy as np
 
 clientID = vrep.simxStart('127.0.0.1',19997,True,True,5000,5)
 _, dsethandle = vrep.simxCreateDummy(clientID, 0.5, None, vrep.simx_opmode_blocking)
-'''
+
 for x in np.arange(0,120,0.5):
     if x <  20:
         _, dhandle = vrep.simxCreateDummy(clientID, 0.3, [255,0,0], vrep.simx_opmode_blocking)
@@ -42,7 +42,7 @@ for x in np.arange(0,120,0.5):
         _ = vrep.simxSetObjectParent(clientID, dhandle, dsethandle, True, vrep.simx_opmode_blocking)
         _ = vrep.simxSetObjectPosition(clientID, dhandle, -1, [x, 0, 0],
                                        vrep.simx_opmode_oneshot)
-'''
+
 
 _, colHandle = vrep.simxGetCollectionHandle(clientID,"Ref",vrep.simx_opmode_blocking)
 _, refHandle, intData, doubleData, strData = vrep.simxGetObjectGroupData(clientID,colHandle,3,vrep.simx_opmode_blocking)
