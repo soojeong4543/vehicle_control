@@ -5,38 +5,36 @@ import numpy as np
 clientID = vrep.simxStart('127.0.0.1',19997,True,True,5000,5)
 _, dsethandle = vrep.simxCreateDummy(clientID, 0.5, None, vrep.simx_opmode_blocking)
 
-for x in np.arange(0,120,0.5):
-    if x <  20:
+for x in np.arange(0,70,0.5):
+    if x <  10:
         _, dhandle = vrep.simxCreateDummy(clientID, 0.3, [255,0,0], vrep.simx_opmode_blocking)
         _ = vrep.simxSetObjectParent(clientID,dhandle,dsethandle,True,vrep.simx_opmode_blocking)
         _ = vrep.simxSetObjectPosition(clientID, dhandle, -1, [x ,0, 0], vrep.simx_opmode_oneshot)
-    #elif x < 30 :
-    #    _, dhandle = vrep.simxCreateDummy(clientID, 0.3, [255,0,0], vrep.simx_opmode_blocking)
-    #    _ = vrep.simxSetObjectParent(clientID, dhandle, dsethandle, True, vrep.simx_opmode_blocking)
-    #    _ = vrep.simxSetObjectPosition(clientID, dhandle, -1, [x, 0.615*math.exp((x-25)/2), 0], vrep.simx_opmode_oneshot)
-
-    elif x < 40 :
+    elif x < 20 :
+        _, dhandle = vrep.simxCreateDummy(clientID, 0.3, [255,0,0], vrep.simx_opmode_blocking)
+        _ = vrep.simxSetObjectParent(clientID, dhandle, dsethandle, True, vrep.simx_opmode_blocking)
+        _ = vrep.simxSetObjectPosition(clientID, dhandle, -1, [x, 0.615*math.exp((x-15)/2), 0], vrep.simx_opmode_oneshot)
+    elif x < 30 :
         _, dhandle = vrep.simxCreateDummy(clientID, 0.3, [255, 0, 0], vrep.simx_opmode_blocking)
         _ = vrep.simxSetObjectParent(clientID, dhandle, dsethandle, True, vrep.simx_opmode_blocking)
-        _ = vrep.simxSetObjectPosition(clientID, dhandle, -1, [x, 3/4*(x-20), 0],
-                                       vrep.simx_opmode_oneshot)
+        #_ = vrep.simxSetObjectPosition(clientID, dhandle, -1, [x, 3/4*(x-20), 0], vrep.simx_opmode_oneshot)
+        _ = vrep.simxSetObjectPosition(clientID, dhandle, -1, [x, -0.615 * math.exp((-x+25) / 2)+15, 0], vrep.simx_opmode_oneshot)
 
-    elif x < 70 :
+    elif x < 40 :
         _, dhandle = vrep.simxCreateDummy(clientID, 0.3, [255,0,0], vrep.simx_opmode_blocking)
         _ = vrep.simxSetObjectParent(clientID, dhandle, dsethandle, True, vrep.simx_opmode_blocking)
         _ = vrep.simxSetObjectPosition(clientID, dhandle, -1, [x, 15, 0], vrep.simx_opmode_oneshot)
 
-    #elif x < 80 :
-    #    _, dhandle = vrep.simxCreateDummy(clientID, 0.3, [255,0,0], vrep.simx_opmode_blocking)
-    #    _ = vrep.simxSetObjectParent(clientID, dhandle, dsethandle, True, vrep.simx_opmode_blocking)
-    #    _ = vrep.simxSetObjectPosition(clientID, dhandle, -1, [x,-0.615*math.exp((x-75)/2)+15, 0], vrep.simx_opmode_oneshot)
+    elif x < 50 :
+        _, dhandle = vrep.simxCreateDummy(clientID, 0.3, [255,0,0], vrep.simx_opmode_blocking)
+        _ = vrep.simxSetObjectParent(clientID, dhandle, dsethandle, True, vrep.simx_opmode_blocking)
+        _ = vrep.simxSetObjectPosition(clientID, dhandle, -1, [x,-0.615*math.exp((x-45)/2)+15, 0], vrep.simx_opmode_oneshot)
 
-    elif x < 90:
+    elif x < 60:
         _, dhandle = vrep.simxCreateDummy(clientID, 0.3, [255, 0, 0], vrep.simx_opmode_blocking)
         _ = vrep.simxSetObjectParent(clientID, dhandle, dsethandle, True, vrep.simx_opmode_blocking)
-        _ = vrep.simxSetObjectPosition(clientID, dhandle, -1, [x, -3/4*(x-70)+15, 0],
-                                       vrep.simx_opmode_oneshot)
-
+        #_ = vrep.simxSetObjectPosition(clientID, dhandle, -1, [x, -3/4*(x-70)+15, 0], vrep.simx_opmode_oneshot)
+        _ = vrep.simxSetObjectPosition(clientID, dhandle, -1, [x, 0.615 * math.exp((-x+55) / 2), 0],vrep.simx_opmode_oneshot)
     else :
         _, dhandle = vrep.simxCreateDummy(clientID, 0.3, [255,0,0], vrep.simx_opmode_blocking)
         _ = vrep.simxSetObjectParent(clientID, dhandle, dsethandle, True, vrep.simx_opmode_blocking)

@@ -3,11 +3,16 @@ import math
 import vrep
 from mpc import mpc_controller
 import sys
+import matplotlib.pyplot as plt
+import datetime
 
 
 Vx=5
 PRD_HRZ = 20
 dt=0.025
+
+Reach = False
+vehRes = np.zeros(shape=(0,3))
 
 #########################
 # Vehicle Control
@@ -98,9 +103,10 @@ if __name__ == "__main__":
     # Get Reference Handles
 
     _, colHandle = vrep.simxGetCollectionHandle(clientID,"Ref",vrep.simx_opmode_blocking)
-    _, refHandle, intData, doubleData, strData = vrep.simxGetObjectGroupData(clientID,colHandle,3,vrep.simx_opmode_blocking)
+    _, refHandle, intData, doubleData, strData = vrep.simxGetObjectGroupData(clientID,colHandle,9,vrep.simx_opmode_blocking)
 
-    refPos = np.reshape(doubleData,(len(refHandle),3))
+    refPos = np.reshape(doubleData,(len(refHandle),6))[:,0:3]
+    refOri = np.reshape(doubleData, (len(refHandle), 6))[:,3:6]
 
     vrep.simxStartSimulation(clientID, vrep.simx_opmode_blocking)
 
@@ -111,15 +117,21 @@ if __name__ == "__main__":
 
     e = np.zeros((4,1))
 
-    while True:
+    while not Reach:
         _, vehiclePos = vrep.simxGetObjectPosition(clientID, vehicle_handle, -1, vrep.simx_opmode_streaming)
         _, vehicleOri = vrep.simxGetObjectOrientation(clientID, vehicle_handle, -1, vrep.simx_opmode_streaming)
+
+        vehRes = np.vstack((vehRes,vehiclePos))
 
         _, vehicleLin, vehicleAng = vrep.simxGetObjectVelocity(clientID, vehicle_handle, vrep.simx_opmode_streaming)
 
         distMtx = vehiclePos - refPos
         normMtx = np.sum(np.abs(distMtx)** 2,axis=-1)**(1./2) ## 2-norm of each row
         nearestRef = np.argmin(normMtx) ## Index number of the nearest dummy
+
+        if nearestRef == len(refHandle)-2:
+            Reach = True
+            #break
 
         if len(refHandle)-nearestRef <= PRD_HRZ :
             cRef = nearestRef
@@ -128,32 +140,40 @@ if __name__ == "__main__":
             cRef = nearestRef + int(PRD_HRZ/2)
             fRef = nearestRef + PRD_HRZ
 
-        _, cRefOri = vrep.simxGetObjectOrientation(clientID, refHandle[cRef], -1, vrep.simx_opmode_blocking)
-        _, fRefOri = vrep.simxGetObjectOrientation(clientID, refHandle[fRef], -1, vrep.simx_opmode_blocking)
-        _, nRefOri = vrep.simxGetObjectOrientation(clientID, refHandle[nearestRef], -1, vrep.simx_opmode_blocking)
+        #_, cRefOri = vrep.simxGetObjectOrientation(clientID, refHandle[cRef], -1, vrep.simx_opmode_blocking)
+        #_, fRefOri = vrep.simxGetObjectOrientation(clientID, refHandle[fRef], -1, vrep.simx_opmode_blocking)
+        #_, nRefOri = vrep.simxGetObjectOrientation(clientID, refHandle[nearestRef], -1, vrep.simx_opmode_blocking)
+
+        cRefOri = refOri[cRef]
+        fRefOri = refOri[fRef]
+        nRefOri = refOri[nearestRef]
 
         #R = normMtx[cRef]
 
-        #ori = nRefOri
-        ori = cRefOri
 
-        y = (-math.sin(ori[2]) * distMtx[cRef,0] + math.cos(ori[2]) * distMtx[cRef,1])
+        ori = nRefOri
+        #ori = cRefOri
+
+        #y = (-math.sin(ori[2]) * distMtx[cRef,0] + math.cos(ori[2]) * distMtx[cRef,1])
+        y = (-math.sin(ori[2]) * distMtx[nearestRef, 0] + math.cos(ori[2]) * distMtx[nearestRef, 1])
         psi = vehicleOri[2] # in radians
         ydot = (-math.sin(ori[2]) * vehicleLin[0] + math.cos(ori[2]) * vehicleLin[1])
         psidot = vehicleAng[2]
 
         y_des = 0
         psi_des = ori[2]
-        psidot_des = (fRefOri[2]-nRefOri[2])/(dt*4*PRD_HRZ)
-        #psidot_des = Vx/15
-
+        #psidot_des = (fRefOri[2]-nRefOri[2])/(dt*4*PRD_HRZ)
+        psidot_des = (refOri[nearestRef+1,2]-nRefOri[2])/(dt*4)
+        #psidot_des = (refOri[cRef + 1, 2] - cRefOri[2]) / (dt * 4)
+        #psidot_des = (refOri[nearestRef+1:fRef+1,2] - refOri[nearestRef:fRef,2])/(dt*4)
         e[0] = y - y_des
         e[1] = ydot + Vx*(psi - psi_des)
         e[2] = psi - psi_des
         e[3] = psidot - psidot_des
+        #e[3] = psidot - refOri[nearestRef+1]
 
         print("-------------------------------------------")
-        print("NearestRef : " + str(nearestRef)+", CRef : " + str(cRef) +",fRef : " + str(fRef))
+        print("NearestRef : " + str(nearestRef)+", CRef : " + str(cRef) +", fRef : " + str(fRef))
         print("y : " + str(y) + ", y_des : " + str(y_des))
         print("ydot : " + str(ydot))
         print("longitudinal velocity : " + str((math.cos(psi)*vehicleLin[0]+math.sin(psi)*vehicleLin[1])))
@@ -171,3 +191,20 @@ if __name__ == "__main__":
         vrep.simxSynchronousTrigger(clientID)
         vrep.simxSynchronousTrigger(clientID)
         vrep.simxSynchronousTrigger(clientID)
+
+    vrep.simxStopSimulation(clientID,vrep.simx_opmode_blocking)
+    vrep.simxFinish(clientID)
+
+    plt.axis('equal')
+
+    plt.plot(refPos[:,0],refPos[:,1],color='black',linestyle='--',label='Reference')
+    plt.scatter(vehRes[1:,0],vehRes[1:,1],label='Vehicle',c='Red',s=0.7)
+
+    plt.xlabel('X position')
+    plt.ylabel('Y poistion')
+
+    plt.legend()
+
+    plt.savefig('./Image/'+str(datetime.datetime.now())+'.png', dpi=1200)
+
+

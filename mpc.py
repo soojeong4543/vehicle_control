@@ -3,7 +3,7 @@ from cvxpy import *
 from control import *
 
 mass = 740 ## kg
-Ca=80000 ## N
+Ca=50000 ## N
 lf=lr=1.42 ## m
 Iz=3.8*mass ## kg*m^2
 
@@ -37,6 +37,7 @@ steer = Variable((1,PRD_HRZ))
 
 e_init = Parameter((4,))
 psidot_des = Parameter(1)
+#psidot_des = Parameter((PRD_HRZ,1))
 
 objective = 0
 constraints = [e[:,0] == e_init]
