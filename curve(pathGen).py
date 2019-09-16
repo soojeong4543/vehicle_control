@@ -7,7 +7,11 @@ import matplotlib.pyplot as plt
 import datetime
 import scene_constants
 import numpy as np
-from getPath import dummy
+import getPath
+from scene_constants import scene_constants
+
+
+
 Vx=5
 PRD_HRZ = 20
 dt=0.025
@@ -71,6 +75,8 @@ if __name__ == "__main__":
         print("ERROR: Cannot establish connection to vrep.")
         sys.exit()
 
+    #getPath.setID(clientID)
+
     # Set Sampling time
     vrep.simxSetFloatingParameter(clientID, vrep.sim_floatparam_simulation_time_step, dt, vrep.simx_opmode_oneshot)
 
@@ -79,6 +85,23 @@ if __name__ == "__main__":
     ########## Get handles from vrep ###########
 
     _, vehicle_handle = vrep.simxGetObjectHandle(clientID, "dyros_vehicle0", vrep.simx_opmode_blocking)
+    _, goal_handle = vrep.simxGetObjectHandle(clientID, "GoalPoint",vrep.simx_opmode_blocking)
+
+    _, colHandle = vrep.simxGetCollectionHandle(clientID,"Ref",vrep.simx_opmode_blocking)
+    _, refHandle, intData, doubleData, strData = vrep.simxGetObjectGroupData(clientID,colHandle,9,vrep.simx_opmode_blocking)
+
+    ref_from_scene_pos = np.reshape(doubleData,(len(refHandle),6))[:,0:3]
+    ref_from_scene_ori = np.reshape(doubleData, (len(refHandle),6))[:,3:6]
+
+    _, goalPos = vrep.simxGetObjectPosition(clientID,goal_handle,-1,vrep.simx_opmode_blocking)
+
+    scene_constants.clientID = clientID
+    scene_constants.vehicle_handle = vehicle_handle
+    scene_constants.goal_handle = goal_handle
+    scene_constants.colHandle = colHandle
+    scene_constants.refHandle = refHandle
+    scene_constants.refPos = ref_from_scene_pos
+    scene_constants.refOri = ref_from_scene_ori
 
     motor_handle = np.zeros(2, dtype=int)
     steer_handle = np.zeros(2, dtype=int)
@@ -98,14 +121,6 @@ if __name__ == "__main__":
     steer_handle[0] = h5
     steer_handle[1] = h6
 
-    # Get Reference Handles
-
-    _, colHandle = vrep.simxGetCollectionHandle(clientID,"Ref",vrep.simx_opmode_blocking)
-    _, refHandle, intData, doubleData, strData = vrep.simxGetObjectGroupData(clientID,colHandle,9,vrep.simx_opmode_blocking)
-
-    refPos = np.reshape(doubleData,(len(refHandle),6))[:,0:3]
-    refOri = np.reshape(doubleData, (len(refHandle),6))[:,3:6]
-
     vrep.simxStartSimulation(clientID, vrep.simx_opmode_blocking)
 
     setMotorSpeed(clientID, motor_handle, Vx)
@@ -116,68 +131,54 @@ if __name__ == "__main__":
     e = np.zeros((4,1))
 
     while not Reach:
-        _, vehiclePos = vrep.simxGetObjectPosition(clientID, vehicle_handle, -1, vrep.simx_opmode_streaming)
-        _, vehicleOri = vrep.simxGetObjectOrientation(clientID, vehicle_handle, -1, vrep.simx_opmode_streaming)
+        #vehLin = np.zeros(3)
+        _, vehiclePos = vrep.simxGetObjectPosition(clientID, vehicle_handle, -1, vrep.simx_opmode_blocking)
+        goalDist = np.subtract(vehiclePos,goalPos)
+        _, vehicleOri = vrep.simxGetObjectOrientation(clientID, vehicle_handle, -1, vrep.simx_opmode_blocking)
+
+        if np.linalg.norm(goalDist) < 0.5:
+            Reach = True
+            break
 
         vehRes = np.vstack((vehRes,vehiclePos))
 
         _, vehicleLin, vehicleAng = vrep.simxGetObjectVelocity(clientID, vehicle_handle, vrep.simx_opmode_streaming)
 
-        distMtx = vehiclePos - refPos
-        normMtx = np.sum(np.abs(distMtx)** 2,axis=1)**(1./2) ## 2-norm of each row
-        nearestRef = np.argmin(normMtx) ## Index number of the nearest dummy
+        #vehLin[0] = (math.cos(vehicleOri[2]) * vehicleLin[0] + math.sin(vehicleOri[2]) * vehicleLin[1]) ## Rotate Vx from world frame to vehicle frame
+        #vehLin[1] = (-math.sin(vehicleOri[2]) * vehicleLin[0] + math.cos(vehicleOri[2]) * vehicleLin[1]) ## Rotate Vy form wold frame to vehicle frame
+        #vehLin[2] = vehicleLin[2]
 
-        if nearestRef == len(refHandle)-2:
-            Reach = True
+        distMtx, refOri = getPath.pathFromRef(scene_constants)
+        #normMtx = np.sum(np.abs(distMtx)** 2,axis=1)**(1./2) ## 2-norm of each row
+        #nearestRef = np.argmin(normMtx) ## Index number of the nearest dummy
 
-        if len(refHandle)-nearestRef <= PRD_HRZ :
-            cRef = nearestRef
-            fRef = nearestRef
-        else :
-            cRef = nearestRef + int(PRD_HRZ/2)
-            fRef = nearestRef + PRD_HRZ
 
-        cRefOri = refOri[cRef]
-        fRefOri = refOri[fRef]
-        nRefOri = refOri[nearestRef]
+        ori = refOri[0]
 
-        ori = nRefOri
-        #ori = cRefOri
-
-        #y = (-math.sin(ori[2]) * distMtx[cRef,0] + math.cos(ori[2]) * distMtx[cRef,1])
-        y = (-math.sin(ori[2]) * distMtx[nearestRef, 0] + math.cos(ori[2]) * distMtx[nearestRef, 1])
-        psi = vehicleOri[2] # in radians
-        ydot = (-math.sin(ori[2]) * vehicleLin[0] + math.cos(ori[2]) * vehicleLin[1])
+        y = (-math.sin(ori) * distMtx[0, 0] + math.cos(ori) * distMtx[0, 1])
+        psi = vehicleOri[2]
+        ydot = (-math.sin(ori) * vehicleLin[0] + math.cos(ori) * vehicleLin[1])
         psidot = vehicleAng[2]
 
         y_des = 0
-        psi_des = ori[2]
-        #psidot_des = (fRefOri[2]-nRefOri[2])/(dt*4*PRD_HRZ)
-        psidot_des = (refOri[nearestRef+1,2]-nRefOri[2])/(dt*4)
+        psi_des = ori
+        psidot_des = (refOri[1]-refOri[0])/(dt*4)
         input2 = psidot_des*np.ones(PRD_HRZ)
-        #input2 = (refOri[nearestRef+1:nearestRef+21,2]-refOri[nearestRef:nearestRef+20,2])/(dt*4)
 
 
-        #psidot_des = (refOri[cRef + 1, 2] - cRefOri[2]) / (dt * 4)
-        #psidot_des = (refOri[nearestRef+1:fRef+1,2] - refOri[nearestRef:fRef,2])/(dt*4)
         e[0] = y - y_des
         e[1] = ydot + Vx*(psi - psi_des)
         e[2] = psi - psi_des
         e[3] = psidot - psidot_des
-        #e[3] = psidot - refOri[nearestRef+1]
-
-
 
         print("-------------------------------------------")
-        print("NearestRef : " + str(nearestRef)+", CRef : " + str(cRef) +", fRef : " + str(fRef))
         print("y : " + str(y) + ", y_des : " + str(y_des))
         print("ydot : " + str(ydot))
         print("longitudinal velocity : " + str((math.cos(psi)*vehicleLin[0]+math.sin(psi)*vehicleLin[1])))
         print("e[1] : " + str(e[1]))
-
         print("psi : " + str(psi) + ", psi_des : "  + str(psi_des))
         print("psidot : " + str(psidot) + ", psidot_des : " + str(psidot_des))
-        print("fRefOri[2] : " + str(fRefOri[2]) + ", nRefOri[2]" + str(nRefOri[2]))
+        print("goaldist : " + str(goalDist))
 
         steer = mpc_controller(e,input2)
 
@@ -193,7 +194,7 @@ if __name__ == "__main__":
 
     plt.axis('equal')
 
-    plt.plot(refPos[:,0],refPos[:,1],color='black',linestyle='--',label='Reference')
+    plt.plot(scene_constants.refPos[:,0],scene_constants.refPos[:,1],color='black',linestyle='--',label='Reference')
     plt.scatter(vehRes[1:,0],vehRes[1:,1],label='Vehicle',c='Red',s=0.7)
 
     plt.xlabel('X position')
