@@ -148,14 +148,14 @@ if __name__ == "__main__":
         #vehLin[1] = (-math.sin(vehicleOri[2]) * vehicleLin[0] + math.cos(vehicleOri[2]) * vehicleLin[1]) ## Rotate Vy form wold frame to vehicle frame
         #vehLin[2] = vehicleLin[2]
 
-        distMtx, refOri = getPath.pathFromRef(scene_constants)
+        refPos, refOri = getPath.pathFromRef(scene_constants)
         #normMtx = np.sum(np.abs(distMtx)** 2,axis=1)**(1./2) ## 2-norm of each row
         #nearestRef = np.argmin(normMtx) ## Index number of the nearest dummy
 
 
         ori = refOri[0]
 
-        y = (-math.sin(ori) * distMtx[0, 0] + math.cos(ori) * distMtx[0, 1])
+        y = (-math.sin(ori) * refPos[0, 0] + math.cos(ori) * refPos[0, 1])
         psi = vehicleOri[2]
         ydot = (-math.sin(ori) * vehicleLin[0] + math.cos(ori) * vehicleLin[1])
         psidot = vehicleAng[2]
