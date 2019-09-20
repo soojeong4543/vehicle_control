@@ -131,10 +131,17 @@ if __name__ == "__main__":
     e = np.zeros((4,1))
 
     while not Reach:
-        #vehLin = np.zeros(3)
+        vehLin = np.zeros(3)
         _, vehiclePos = vrep.simxGetObjectPosition(clientID, vehicle_handle, -1, vrep.simx_opmode_blocking)
-        goalDist = np.subtract(vehiclePos,goalPos)
         _, vehicleOri = vrep.simxGetObjectOrientation(clientID, vehicle_handle, -1, vrep.simx_opmode_blocking)
+        _, vehicleLin, vehicleAng = vrep.simxGetObjectVelocity(clientID, vehicle_handle, vrep.simx_opmode_streaming)
+        ## global coordinate
+
+        vehLin[0] = (math.cos(vehicleOri[2]) * vehicleLin[0] + math.sin(vehicleOri[2]) * vehicleLin[1]) ## Rotate Vx from world frame to vehicle frame
+        vehLin[1] = (-math.sin(vehicleOri[2]) * vehicleLin[0] + math.cos(vehicleOri[2]) * vehicleLin[1]) ## Rotate Vy form wold frame to vehicle frame
+        vehLin[2] = vehicleLin[2]
+
+        goalDist = np.subtract(vehiclePos, goalPos)
 
         if np.linalg.norm(goalDist) < 0.5:
             Reach = True
@@ -142,26 +149,17 @@ if __name__ == "__main__":
 
         vehRes = np.vstack((vehRes,vehiclePos))
 
-        _, vehicleLin, vehicleAng = vrep.simxGetObjectVelocity(clientID, vehicle_handle, vrep.simx_opmode_streaming)
-
-        #vehLin[0] = (math.cos(vehicleOri[2]) * vehicleLin[0] + math.sin(vehicleOri[2]) * vehicleLin[1]) ## Rotate Vx from world frame to vehicle frame
-        #vehLin[1] = (-math.sin(vehicleOri[2]) * vehicleLin[0] + math.cos(vehicleOri[2]) * vehicleLin[1]) ## Rotate Vy form wold frame to vehicle frame
-        #vehLin[2] = vehicleLin[2]
-
         refPos, refOri = getPath.pathFromRef(scene_constants)
-        #normMtx = np.sum(np.abs(distMtx)** 2,axis=1)**(1./2) ## 2-norm of each row
-        #nearestRef = np.argmin(normMtx) ## Index number of the nearest dummy
-
 
         ori = refOri[0]
 
-        y = (-math.sin(ori) * refPos[0, 0] + math.cos(ori) * refPos[0, 1])
-        psi = vehicleOri[2]
-        ydot = (-math.sin(ori) * vehicleLin[0] + math.cos(ori) * vehicleLin[1])
+        psi = 0
+        y = (-math.sin(-ori) * -refPos[0, 0] + math.cos(-ori) * -refPos[0, 1])
+        ydot = (-math.sin(-ori) * vehLin[0] + math.cos(-ori) * vehLin[1])
         psidot = vehicleAng[2]
 
         y_des = 0
-        psi_des = ori
+        psi_des = refOri[0]
         psidot_des = (refOri[1]-refOri[0])/(dt*4)
         input2 = psidot_des*np.ones(PRD_HRZ)
 

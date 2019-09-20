@@ -25,7 +25,7 @@ Bc = np.array([[0, 0], [2*Ca/mass,-1*(2*Ca*lf-2*Ca*lr)-Vx],[0, 0],[2*Ca*lf/Iz, -
 Cc = np.eye(4)
 Dc = np.zeros((4,2))
 
-Q=np.diag([0.5,0.5,0.5,0.5])
+Q=np.diag([0.5, 0.5,1,1])
 
 sysc = ss(Ac,Bc,Cc,Dc)
 
