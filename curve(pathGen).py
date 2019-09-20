@@ -131,6 +131,8 @@ if __name__ == "__main__":
     e = np.zeros((4,1))
 
     while not Reach:
+        print("-------------------------------------------")
+
         vehLin = np.zeros(3)
         _, vehiclePos = vrep.simxGetObjectPosition(clientID, vehicle_handle, -1, vrep.simx_opmode_blocking)
         _, vehicleOri = vrep.simxGetObjectOrientation(clientID, vehicle_handle, -1, vrep.simx_opmode_blocking)
@@ -141,9 +143,9 @@ if __name__ == "__main__":
         vehLin[1] = (-math.sin(vehicleOri[2]) * vehicleLin[0] + math.cos(vehicleOri[2]) * vehicleLin[1]) ## Rotate Vy form wold frame to vehicle frame
         vehLin[2] = vehicleLin[2]
 
-        goalDist = np.subtract(vehiclePos, goalPos)
+        goalDist = np.linalg.norm(np.subtract(vehiclePos, goalPos))
 
-        if np.linalg.norm(goalDist) < 0.5:
+        if goalDist < 0.5:
             Reach = True
             break
 
@@ -169,7 +171,6 @@ if __name__ == "__main__":
         e[2] = psi - psi_des
         e[3] = psidot - psidot_des
 
-        print("-------------------------------------------")
         print("y : " + str(y) + ", y_des : " + str(y_des))
         print("ydot : " + str(ydot))
         print("longitudinal velocity : " + str((math.cos(psi)*vehicleLin[0]+math.sin(psi)*vehicleLin[1])))
