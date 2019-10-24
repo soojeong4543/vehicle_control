@@ -1,19 +1,17 @@
-#from control import *
 import math
 import vrep
 from mpc import mpc_controller
 import sys
 import matplotlib.pyplot as plt
 import datetime
-import scene_constants
 import numpy as np
 import getPath
 from scene_constants import scene_constants
 
 
 
-Vx=5
-PRD_HRZ = 20
+Vx=2.77
+PRD_HRZ = 10
 dt=0.025
 
 Reach = False
@@ -85,7 +83,7 @@ if __name__ == "__main__":
     ########## Get handles from vrep ###########
 
     _, vehicle_handle = vrep.simxGetObjectHandle(clientID, "dyros_vehicle0", vrep.simx_opmode_blocking)
-    _, goal_handle = vrep.simxGetObjectHandle(clientID, "GoalPoint",vrep.simx_opmode_blocking)
+    _, goal_handle = vrep.simxGetObjectHandle(clientID, "GoalPoint5",vrep.simx_opmode_blocking)
 
     _, colHandle = vrep.simxGetCollectionHandle(clientID,"Ref",vrep.simx_opmode_blocking)
     _, refHandle, intData, doubleData, strData = vrep.simxGetObjectGroupData(clientID,colHandle,9,vrep.simx_opmode_blocking)
@@ -137,6 +135,7 @@ if __name__ == "__main__":
         _, vehiclePos = vrep.simxGetObjectPosition(clientID, vehicle_handle, -1, vrep.simx_opmode_blocking)
         _, vehicleOri = vrep.simxGetObjectOrientation(clientID, vehicle_handle, -1, vrep.simx_opmode_blocking)
         _, vehicleLin, vehicleAng = vrep.simxGetObjectVelocity(clientID, vehicle_handle, vrep.simx_opmode_streaming)
+
         ## global coordinate
 
         vehLin[0] = (math.cos(vehicleOri[2]) * vehicleLin[0] + math.sin(vehicleOri[2]) * vehicleLin[1]) ## Rotate Vx from world frame to vehicle frame
@@ -151,20 +150,20 @@ if __name__ == "__main__":
 
         vehRes = np.vstack((vehRes,vehiclePos))
 
-        refPos, refOri = getPath.pathFromRef(scene_constants)
+        refPos, refOri = getPath.pathFromArray(scene_constants)
 
         ori = refOri[0]
 
         psi = 0
         y = (-math.sin(-ori) * -refPos[0, 0] + math.cos(-ori) * -refPos[0, 1])
-        ydot = (-math.sin(-ori) * vehLin[0] + math.cos(-ori) * vehLin[1])
+        #ydot = (-math.sin(-ori) * vehLin[0] + math.cos(-ori) * vehLin[1])
+        ydot = vehLin[1]
         psidot = vehicleAng[2]
 
         y_des = 0
         psi_des = refOri[0]
-        psidot_des = (refOri[1]-refOri[0])/(dt*4)
+        psidot_des = (refOri[1]-refOri[0])/(dt*8)
         input2 = psidot_des*np.ones(PRD_HRZ)
-
 
         e[0] = y - y_des
         e[1] = ydot + Vx*(psi - psi_des)
@@ -187,6 +186,10 @@ if __name__ == "__main__":
         vrep.simxSynchronousTrigger(clientID)
         vrep.simxSynchronousTrigger(clientID)
         vrep.simxSynchronousTrigger(clientID)
+        vrep.simxSynchronousTrigger(clientID)
+        vrep.simxSynchronousTrigger(clientID)
+        vrep.simxSynchronousTrigger(clientID)
+        vrep.simxSynchronousTrigger(clientID)
 
     vrep.simxStopSimulation(clientID,vrep.simx_opmode_blocking)
     vrep.simxFinish(clientID)
@@ -202,5 +205,3 @@ if __name__ == "__main__":
     plt.legend()
 
     plt.savefig('./Image/'+str(datetime.datetime.now())+'.png', dpi=1200)
-
-

@@ -8,14 +8,14 @@ Ca=50000 ## N
 lf=lr=1.42 ## m
 Iz=3.8*mass ## kg*m^2
 
-max_steer = math.pi/6
-min_steer = -math.pi/6
+max_steer = math.pi/4
+min_steer = -math.pi/4
 
-dt = 0.025*4
-Vx = 5 ## m/s
+dt = 0.025*8
+Vx = 2.77 ## m/s
 R = 20 ## radius of road
 
-PRD_HRZ=20
+PRD_HRZ=10
 
 Ac = np.array([[0, 1, 0, 0,],
                [0,-1*(2*Ca+2*Ca)/mass/Vx,(2*Ca+2*Ca)/mass,(-2*Ca*lf+2*Ca*lr)/mass/Vx],
@@ -25,7 +25,7 @@ Bc = np.array([[0, 0], [2*Ca/mass,-1*(2*Ca*lf-2*Ca*lr)-Vx],[0, 0],[2*Ca*lf/Iz, -
 Cc = np.eye(4)
 Dc = np.zeros((4,2))
 
-Q=np.diag([0.5, 0.5,1,1])
+Q=np.diag([1,1,0.5,0.5])
 
 sysc = ss(Ac,Bc,Cc,Dc)
 

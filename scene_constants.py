@@ -27,3 +27,7 @@ class scene_constants:
 
     # Simulation Parameters
     dt = 0.025                      # dt of the vrep simulation
+
+    CTR_FRQ = 0.2
+
+    Vx=2.77
