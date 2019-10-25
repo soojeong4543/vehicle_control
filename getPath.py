@@ -3,11 +3,8 @@ import math
 import vrep
 
 
-#clientID = None
 PRD_HRZ = 20
 
-#ref_from_scene_pos = None
-#ref_from_scene_ori = None
 
 '''
 def setID(ID):
